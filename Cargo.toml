@@ -9,6 +9,7 @@ name = "sm3"
 path = "src/lib.rs"
 
 [dependencies]
+byteorder = "1"
 openssl-sys = { git = "https://github.com/jiegec/rust-openssl", branch = "add-sm3" }
 openssl = { git = "https://github.com/jiegec/rust-openssl", branch = "add-sm3" }
 hex = "0.4"

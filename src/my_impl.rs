@@ -1,5 +1,6 @@
 use crate::*;
 use std::convert::TryFrom;
+use byteorder::{BigEndian, WriteBytesExt, ReadBytesExt};
 
 // reference:
 // https://tools.ietf.org/html/draft-oscca-cfrg-sm3-02
@@ -27,15 +28,13 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
 
     // 9: 8-byte length + 0x80
     // padding: 80 00 00 00 ... [64-bit length]
-    let real_length: usize = (input.len() + 9 + 63) & (!63usize);
+    let real_length = (input.len() + 9 + 63) & (!63usize);
     let mut preprocessed: Vec<u8> = Vec::with_capacity(real_length);
     preprocessed.extend_from_slice(input);
     preprocessed.resize(real_length, 0);
     preprocessed[input.len()] = 0x80;
     // write length in big endian
-    for i in 0..8 {
-        preprocessed[real_length - 1 - i] = (0xFF & ((length * 8) >> (8 * i))) as u8;
-    }
+    (&mut preprocessed[real_length - 8..real_length]).write_u64::<BigEndian>(length * 8).unwrap();
 
     // main loop
     for offset in (0..real_length).step_by(64) {
@@ -45,10 +44,7 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
         // B_i = W_0 || ... || W_15
         // copy preprocessed to w[0..15]
         for i in 0..16 {
-            w[i] = (u32::from(preprocessed[offset + 4 * i]) << 24) | 
-                    (u32::from(preprocessed[offset + 4 * i + 1]) << 16) |
-                    (u32::from(preprocessed[offset + 4 * i + 2]) << 8) |
-                    (u32::from(preprocessed[offset + 4 * i + 3]));
+            w[i] = (&preprocessed[offset + 4 * i..offset + 4 * i + 4]).read_u32::<BigEndian>().unwrap();
         }
 
         // 5.3.2.  Message Expansion Function ME
@@ -108,11 +104,9 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
         V[7] ^= h;
     }
 
-    // convert to big endian
+    // write to results in big endian
     for i in 0..8 {
-        for j in 0..4 {
-            output[4 * i + j] = ((V[i] >> (8 * (3 - j))) & 0xFF) as u8;
-        }
+        (&mut output[4 * i..4 * (i + 1)]).write_u32::<BigEndian>(V[i]).unwrap();
     }
 
     Bytes{
