@@ -23,7 +23,7 @@ mod sm3_tests {
     fn test_openssl_sm3() {
         for cipher in TEST_CIPHERS.iter() {
             assert_eq!(
-                OPENSSL_SM3(&hex::decode(cipher.clear).unwrap()).unwrap().as_ref(),
+                OPENSSL_SM3(&hex::decode(cipher.clear).unwrap()).as_ref(),
                 hex::decode(cipher.encrypted).unwrap().as_slice()
             )
         }
@@ -33,7 +33,7 @@ mod sm3_tests {
     fn test_my_sm3() {
         for cipher in TEST_CIPHERS.iter() {
             assert_eq!(
-                MY_SM3(&hex::decode(cipher.clear).unwrap()).unwrap().as_ref(),
+                MY_SM3(&hex::decode(cipher.clear).unwrap()).as_ref(),
                 hex::decode(cipher.encrypted).unwrap().as_slice()
             )
         }
@@ -45,8 +45,8 @@ mod sm3_tests {
             let len = rand::random::<u16>();
             let random_bytes = (0..len).map(|_| { rand::random::<u8>() }).collect::<Vec<u8>>();
             let bytes = random_bytes.as_slice();
-            let my_result = MY_SM3(bytes).unwrap();
-            let openssl_result = OPENSSL_SM3(bytes).unwrap();
+            let my_result = MY_SM3(bytes);
+            let openssl_result = OPENSSL_SM3(bytes);
             assert_eq!(my_result.as_ref(), openssl_result.as_ref());
         }
     }

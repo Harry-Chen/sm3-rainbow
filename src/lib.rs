@@ -45,7 +45,7 @@ impl fmt::Debug for Bytes {
     }
 }
 
-pub type Hash = fn(input: &[u8]) -> Result<Bytes, ()>;
+pub type Hash = fn(input: &[u8]) -> Bytes;
 
 pub mod my_impl;
 pub mod openssl_impl;
