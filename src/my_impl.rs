@@ -1,5 +1,6 @@
 use crate::*;
 use std::convert::TryFrom;
+use std::mem::MaybeUninit;
 use byteorder::{BigEndian, WriteBytesExt, ReadBytesExt};
 
 // reference:
@@ -18,7 +19,7 @@ fn p_1(x: u32) -> u32 {
 
 
 fn my_hash_impl(input: &[u8]) -> Bytes {
-    let mut output: [u8; 32] = [0; 32];
+    let mut output: [u8; 32] = unsafe { MaybeUninit::uninit().assume_init() };
 
     #[allow(non_snake_case)]
     let mut V: [u32; 8] = [0x7380166f, 0x4914b2b9, 0x172442d7, 0xda8a0600, 0xa96f30bc, 0x163138aa, 0xe38dee4d, 0xb0fb0e4e];
@@ -38,8 +39,8 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
 
     // main loop
     for offset in (0..real_length).step_by(64) {
-        let mut w: [u32; 68] = [0; 68];
-        let mut w1: [u32; 64] = [0; 64];
+        let mut w: [u32; 68] = unsafe { MaybeUninit::uninit().assume_init() };
+        let mut w1: [u32; 64] = unsafe { MaybeUninit::uninit().assume_init() };
 
         // B_i = W_0 || ... || W_15
         // copy preprocessed to w[0..15]
