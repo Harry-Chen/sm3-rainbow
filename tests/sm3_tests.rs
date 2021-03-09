@@ -41,8 +41,8 @@ mod sm3_tests {
 
     #[test]
     fn random_test_sm3() {
-        for _ in 0..1000 {
-            let len = rand::random::<u16>() % 1024;
+        for _ in 0..100 {
+            let len = rand::random::<u16>();
             let random_bytes = (0..len).map(|_| { rand::random::<u8>() }).collect::<Vec<u8>>();
             let bytes = random_bytes.as_slice();
             let my_result = MY_SM3(bytes);
