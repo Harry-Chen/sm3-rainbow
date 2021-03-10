@@ -1,5 +1,6 @@
 use rayon::prelude::*;
 use log::*;
+use indicatif::ProgressBar;
 
 fn main() {
 
@@ -20,25 +21,38 @@ fn main() {
     info!("Plain text count: {:?}", plaintext_lens);
 
     info!("Start generating rainbow chains");
-    let chains: Vec<_> = (0..2u64).into_par_iter().map(|i| {
+    let rainbow_count = 1000;
+    let progress = ProgressBar::new(rainbow_count);
+
+    let chains: Vec<_> = (0..rainbow_count).into_par_iter().map(|i| {
         let head = sm3::rainbow::RainbowIndex(plaintext_lens[4] + i);
-        let chain = sm3::rainbow::RainbowChain::from_index(head, charset, &range, plaintext_lens.as_ref(), 0, 20, 0);
+        let chain = sm3::rainbow::RainbowChain::from_index(head, charset, &range, plaintext_lens.as_ref(), 0, 10000, 0);
         trace!("Generate chain: {:?}", chain);
+        progress.inc(1);
         chain
     }).collect();
+
+    progress.finish_and_clear();
+    info!("Finish generating rainbow chains");
     // let head = sm3::rainbow::RainbowIndex(plaintext_lens[4]);
     // let chain = sm3::rainbow::RainbowChain::from_index(head, charset, &range, plaintext_lens.as_ref(), 0, 200, 0);
 
     let mut target_hash = [0u8; 32];
     hex::decode_to_slice("c35fbbd3346482874d22cdfc66500585f7dd1acb67ceb042c54195007a64f0e6", &mut target_hash).unwrap();
 
-    for chain in chains.iter() {
-        match chain.find_match(&target_hash, charset, &range, plaintext_lens.as_ref(), 50, 0) {
+    progress.reset();
+
+    chains.into_par_iter().for_each(|chain| {
+        match chain.find_match(&target_hash, charset, &range, plaintext_lens.as_ref(), 10000, 0) {
             Some(result) => {
                 let plain = String::from_utf8_lossy(&result);
                 info!("Found plain text: {:?}", plain)
             },
-            None => error!("Failed to find plain text!")
+            None => {} // warn!("Failed to find plain text!")
         }
-    }
+        progress.inc(1);
+    });
+
+    progress.finish_and_clear();
+    info!("Finish traversing all chains");
 }

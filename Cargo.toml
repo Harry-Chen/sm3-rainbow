@@ -21,6 +21,7 @@ hex = "0.4"
 log = "0.4"
 env_logger = "0.8"
 rayon = "1"
+indicatif = {version = "0.15", features = ["rayon"]}
 
 [dev-dependencies]
 rand = "0.8"
