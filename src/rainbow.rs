@@ -1,11 +1,11 @@
 use log::*;
-use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use byteorder::{LittleEndian, ReadBytesExt};
 
 use crate::*;
 use crate::my_sm3_impl::my_hash_impl_inplace;
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct RainbowIndex(pub u64);
 
 unsafe impl Send for RainbowIndex {}
@@ -47,26 +47,17 @@ impl RainbowIndex {
         let ret = (&hash[0..8]).read_u64::<LittleEndian>().unwrap();
         RainbowIndex((ret + reduction_offset + pos as u64) % plaintext_space_total)
     }
-}
 
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
-pub struct RainbowChain {
-    head: RainbowIndex,
-    tail: RainbowIndex,
-    length: usize
-}
-
-unsafe impl Send for RainbowChain {}
-unsafe impl Sync for RainbowChain {}
-
-
-impl RainbowChain {
-
-    pub fn from_index(head: RainbowIndex, charset: &[u8], plaintext_len_range: &Range<usize>, plaintext_lens: &[u64], length: usize, reduction_offset: u64) -> Self {
+    // traverse the chain from certain position, return the tail index
+    pub fn traverse_chain<F>(
+        head: RainbowIndex, charset: &[u8], plaintext_len_range: &Range<usize>,
+        plaintext_lens: &[u64], start_pos: usize, length: usize, reduction_offset: u64,
+        mut callback: F
+    ) -> Self
+        where F: FnMut(&[u8], &[u8], usize) -> bool {
 
         let mut index = head;
-        log::info!("Starting generating chain from index {:#018x}", index.0);
+        log::info!("Starting traversing chain from index {:#018x} with start pos {} length {}", index.0, start_pos, length);
 
         // buffer for plain text
         let mut plaintext: Vec<u8> = Vec::new();
@@ -77,25 +68,85 @@ impl RainbowChain {
         let mut hash = [0u8; 32];
         let total_space = *plaintext_lens.last().unwrap();
 
-        for i in 0..length {
+        for pos in start_pos..start_pos + length {
             let len = index.to_plaintext(&charset, &plaintext_len_range, &plaintext_lens, &mut plaintext);
             my_hash_impl_inplace(&plaintext, len as usize, &mut hash);
-            index = RainbowIndex::from_hash(&hash, reduction_offset, total_space, i as u32);
+            index = RainbowIndex::from_hash(&hash, reduction_offset, total_space, pos as u32);
             // log each step
             if log_enabled!(log::Level::Debug) {
                 let plaintext_char = unsafe { String::from_raw_parts(plaintext.as_mut_ptr(), max_len, max_len) };
                 let hash_char = hex::encode(hash);
-                log::debug!("Step {}: plain text {}, length {}, hash {}, new index {:#018x}", i, plaintext_char, len, hash_char, index.0);
+                log::debug!("Pos {}: plain text {}, length {}, hash {}, new index {:#018x}", pos, plaintext_char, len, hash_char, index.0);
                 std::mem::forget(plaintext_char);
+            }
+            // invoke callback
+            if callback(&hash, &plaintext, len) {
+                log::info!("Traversing stopped by callback at step {}", pos);
+                break
             }
         }
 
         log::info!("Rainbow chain has tail index {:#018x}", index.0);
+        index
+    }
+}
 
+#[repr(C)]
+#[derive(Copy, Clone, Debug)]
+// a chain in the rainbow table
+pub struct RainbowChain {
+    head: RainbowIndex,
+    tail: RainbowIndex,
+}
+
+unsafe impl Send for RainbowChain {}
+unsafe impl Sync for RainbowChain {}
+
+
+impl RainbowChain {
+
+    // generate a chain from index as head
+    pub fn from_index(
+        head: RainbowIndex, charset: &[u8], plaintext_len_range: &Range<usize>,
+        plaintext_lens: &[u64], start_pos: usize, length: usize, reduction_offset: u64,
+    ) -> Self {
+        let tail = RainbowIndex::traverse_chain(
+            head, charset, plaintext_len_range, plaintext_lens,
+            start_pos, length, reduction_offset, |_, _, _| false);
         RainbowChain {
             head,
-            tail: index,
-            length
+            tail
+        }
+    }
+
+    // find exact match from head
+    pub fn find_match(
+        &self, target_hash: &[u8], charset: &[u8], plaintext_len_range: &Range<usize>,
+        plaintext_lens: &[u64], length: usize, reduction_offset: u64,
+    ) -> Option<Vec<u8>> {
+
+        if log_enabled!(log::Level::Info) {
+            let hash_str = hex::encode(target_hash);
+            log::info!("Finding match for {} on chain {:?}", hash_str, self);
+        }
+        // buffer for result
+        let mut result: Vec<u8> = Vec::new();
+        // check hash in each loop
+        RainbowIndex::traverse_chain(self.head, charset, plaintext_len_range, plaintext_lens,
+                       0, length, reduction_offset,
+     |hash, text, len| {
+                if target_hash == hash {
+                    result.extend_from_slice(&text[..len]);
+                    true
+                } else {
+                    false
+                }
+            });
+        // return result
+        if result.is_empty() {
+            None
+        } else {
+            Some(result)
         }
     }
 }
