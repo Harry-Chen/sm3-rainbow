@@ -17,8 +17,7 @@ fn p_1(x: u32) -> u32 {
     x ^ ((x << 15) | (x >> 17)) ^ ((x << 23) | (x >> 9))
 }
 
-fn my_hash_impl(input: &[u8]) -> Bytes {
-    let mut output: [u8; 32] = unsafe { MaybeUninit::uninit().assume_init() };
+pub(crate) fn my_hash_impl_inplace(input: &[u8], input_len: usize, output: &mut [u8]) {
 
     #[allow(non_snake_case)]
     let mut V: [u32; 8] = [
@@ -27,11 +26,11 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
     ];
 
     // preprocessing
-    let length: u64 = u64::try_from(input.len()).unwrap();
+    let length: u64 = u64::try_from(input_len).unwrap();
 
     // 9: 8-byte length + 0x80
     // padding: 80 00 00 00 ... [64-bit length]
-    let real_length = (input.len() + 9 + 63) & (!63usize);
+    let real_length = (input_len + 9 + 63) & (!63usize);
     let mut preprocessed: Vec<u8> = Vec::with_capacity(real_length);
     preprocessed.extend_from_slice(input);
     preprocessed.resize(real_length, 0);
@@ -141,7 +140,11 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
             .write_u32::<BigEndian>(V[i])
             .unwrap();
     }
+}
 
+pub(crate) fn my_hash_impl(input: &[u8]) -> Bytes {
+    let mut output: [u8; 32] = [0; 32];
+    my_hash_impl_inplace(&input, input.len(), &mut output);
     Bytes {
         buf: output,
         len: 32,

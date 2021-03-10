@@ -6,13 +6,19 @@ edition = "2018"
 
 [lib]
 name = "sm3"
-path = "src/lib.rs"
+path = "src/sm3.rs"
+
+[[bin]]
+name = "generate_rt"
+path = "src/generate_rt.rs"
 
 [dependencies]
 byteorder = "1"
 openssl-sys = { git = "https://github.com/jiegec/rust-openssl", branch = "add-sm3" }
 openssl = { git = "https://github.com/jiegec/rust-openssl", branch = "add-sm3" }
 hex = "0.4"
+log = "0.4"
+env_logger = "0.8"
 
 [dev-dependencies]
 rand = "0.8"
