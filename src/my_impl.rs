@@ -1,7 +1,7 @@
 use crate::*;
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::convert::TryFrom;
 use std::mem::MaybeUninit;
-use byteorder::{BigEndian, WriteBytesExt, ReadBytesExt};
 
 // reference:
 // https://tools.ietf.org/html/draft-oscca-cfrg-sm3-02
@@ -17,12 +17,14 @@ fn p_1(x: u32) -> u32 {
     x ^ ((x << 15) | (x >> 17)) ^ ((x << 23) | (x >> 9))
 }
 
-
 fn my_hash_impl(input: &[u8]) -> Bytes {
     let mut output: [u8; 32] = unsafe { MaybeUninit::uninit().assume_init() };
 
     #[allow(non_snake_case)]
-    let mut V: [u32; 8] = [0x7380166f, 0x4914b2b9, 0x172442d7, 0xda8a0600, 0xa96f30bc, 0x163138aa, 0xe38dee4d, 0xb0fb0e4e];
+    let mut V: [u32; 8] = [
+        0x7380166f, 0x4914b2b9, 0x172442d7, 0xda8a0600, 0xa96f30bc, 0x163138aa, 0xe38dee4d,
+        0xb0fb0e4e,
+    ];
 
     // preprocessing
     let length: u64 = u64::try_from(input.len()).unwrap();
@@ -35,7 +37,9 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
     preprocessed.resize(real_length, 0);
     preprocessed[input.len()] = 0x80;
     // write length in big endian
-    (&mut preprocessed[real_length - 8..real_length]).write_u64::<BigEndian>(length * 8).unwrap();
+    (&mut preprocessed[real_length - 8..real_length])
+        .write_u64::<BigEndian>(length * 8)
+        .unwrap();
 
     // main loop
     for offset in (0..real_length).step_by(64) {
@@ -45,7 +49,9 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
         // B_i = W_0 || ... || W_15
         // copy preprocessed to w[0..15]
         for i in 0..16 {
-            w[i] = (&preprocessed[offset + 4 * i..offset + 4 * i + 4]).read_u32::<BigEndian>().unwrap();
+            w[i] = (&preprocessed[offset + 4 * i..offset + 4 * i + 4])
+                .read_u32::<BigEndian>()
+                .unwrap();
         }
 
         // 5.3.2.  Message Expansion Function ME
@@ -78,12 +84,36 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
         for i in 0..64 {
             // 4.2.  Constants T_j
             let tj: u32 = if i <= 15 { 0x79cc4519 } else { 0x7a879d8a };
-            let mut ss1: u32 = ((a << 12) | (a >> 20)).overflowing_add(e).0.overflowing_add((tj << (i % 32)) | (tj.overflowing_shr(32 - i % 32).0)).0;
+            let mut ss1: u32 = ((a << 12) | (a >> 20))
+                .overflowing_add(e)
+                .0
+                .overflowing_add((tj << (i % 32)) | (tj.overflowing_shr(32 - i % 32).0))
+                .0;
             ss1 = (ss1 << 7) | (ss1 >> 25);
             let ss2 = ss1 ^ ((a << 12) | (a >> 20));
             // 4.3. Boolean Functions FF_j and GG_j
-            let tt1 = if i <= 15 { a ^ b ^ c } else { (a & b) | (a & c) | (b & c) }.overflowing_add(d).0.overflowing_add(ss2).0.overflowing_add(w1[i as usize]).0;
-            let tt2 = if i <= 15 { e ^ f ^ g } else { (e & f) | ((!e) & g) }.overflowing_add(h).0.overflowing_add(ss1).0.overflowing_add(w[i as usize]).0;
+            let tt1 = if i <= 15 {
+                a ^ b ^ c
+            } else {
+                (a & b) | (a & c) | (b & c)
+            }
+            .overflowing_add(d)
+            .0
+            .overflowing_add(ss2)
+            .0
+            .overflowing_add(w1[i as usize])
+            .0;
+            let tt2 = if i <= 15 {
+                e ^ f ^ g
+            } else {
+                (e & f) | ((!e) & g)
+            }
+            .overflowing_add(h)
+            .0
+            .overflowing_add(ss1)
+            .0
+            .overflowing_add(w[i as usize])
+            .0;
 
             d = c;
             c = (b << 9) | (b >> 23);
@@ -107,12 +137,14 @@ fn my_hash_impl(input: &[u8]) -> Bytes {
 
     // write to results in big endian
     for i in 0..8 {
-        (&mut output[4 * i..4 * (i + 1)]).write_u32::<BigEndian>(V[i]).unwrap();
+        (&mut output[4 * i..4 * (i + 1)])
+            .write_u32::<BigEndian>(V[i])
+            .unwrap();
     }
 
-    Bytes{
+    Bytes {
         buf: output,
-        len: 32
+        len: 32,
     }
 }
 

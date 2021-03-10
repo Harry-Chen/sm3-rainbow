@@ -1,5 +1,5 @@
-use std::*;
 use std::ops::*;
+use std::*;
 
 pub const SM_DIGEST_SIZE: u32 = 32;
 
