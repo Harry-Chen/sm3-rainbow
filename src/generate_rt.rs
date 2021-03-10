@@ -1,6 +1,6 @@
 use rayon::prelude::*;
 use log::*;
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 
 fn main() {
 
@@ -23,6 +23,9 @@ fn main() {
     info!("Start generating rainbow chains");
     let rainbow_count = 1000;
     let progress = ProgressBar::new(rainbow_count);
+    progress.set_style(ProgressStyle::default_bar()
+        .template("{spinner:.green} [{elapsed}/{eta}] [{bar:50.cyan/blue}] {pos}/{len} ({percent}%)")
+        .progress_chars("#>-"));
 
     let chains: Vec<_> = (0..rainbow_count).into_par_iter().map(|i| {
         let head = sm3::rainbow::RainbowIndex(plaintext_lens[4] + i);
