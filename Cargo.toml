@@ -3,6 +3,7 @@ name = "sm3-rainbow"
 version = "0.1.0"
 authors = ["Harry Chen <i@harrychen.xyz>"]
 edition = "2018"
+publish = false
 
 [lib]
 name = "sm3"
@@ -19,6 +20,7 @@ openssl = { git = "https://github.com/jiegec/rust-openssl", branch = "add-sm3" }
 hex = "0.4"
 log = "0.4"
 env_logger = "0.8"
+rayon = "1"
 
 [dev-dependencies]
 rand = "0.8"

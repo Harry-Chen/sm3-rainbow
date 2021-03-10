@@ -57,7 +57,7 @@ impl RainbowIndex {
         where F: FnMut(&[u8], &[u8], usize) -> bool {
 
         let mut index = head;
-        log::info!("Starting traversing chain from index {:#018x} with start pos {} length {}", index.0, start_pos, length);
+        debug!("Starting traversing chain from index {:#018x} with start pos {} length {}", index.0, start_pos, length);
 
         // buffer for plain text
         let mut plaintext: Vec<u8> = Vec::new();
@@ -76,27 +76,45 @@ impl RainbowIndex {
             if log_enabled!(log::Level::Debug) {
                 let plaintext_char = unsafe { String::from_raw_parts(plaintext.as_mut_ptr(), max_len, max_len) };
                 let hash_char = hex::encode(hash);
-                log::debug!("Pos {}: plain text {}, length {}, hash {}, new index {:#018x}", pos, plaintext_char, len, hash_char, index.0);
+                trace!("Pos {}: plain text {}, length {}, hash {}, new index {:#018x}", pos, plaintext_char, len, hash_char, index.0);
                 std::mem::forget(plaintext_char);
             }
             // invoke callback
             if callback(&hash, &plaintext, len) {
-                log::info!("Traversing stopped by callback at step {}", pos);
+                info!("Traversing stopped by callback at step {}", pos);
                 break
             }
         }
 
-        log::info!("Rainbow chain has tail index {:#018x}", index.0);
+        debug!("Rainbow chain has tail index {:#018x}", index.0);
         index
     }
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq)]
 // a chain in the rainbow table
 pub struct RainbowChain {
     head: RainbowIndex,
     tail: RainbowIndex,
+}
+
+impl PartialEq for RainbowChain {
+    fn eq(&self, other: &Self) -> bool {
+        self.tail == other.tail
+    }
+}
+
+impl Ord for RainbowChain {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.tail.cmp(&other.tail)
+    }
+}
+
+impl PartialOrd for RainbowChain {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 unsafe impl Send for RainbowChain {}
@@ -127,7 +145,7 @@ impl RainbowChain {
 
         if log_enabled!(log::Level::Info) {
             let hash_str = hex::encode(target_hash);
-            log::info!("Finding match for {} on chain {:?}", hash_str, self);
+            debug!("Finding match for {} on chain {:?}", hash_str, self);
         }
         // buffer for result
         let mut result: Vec<u8> = Vec::new();
