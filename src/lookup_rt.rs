@@ -1,3 +1,5 @@
+#![feature(osstring_ascii)]
+
 use std::fs::{File, OpenOptions};
 use std::io::Read;
 use std::path::Path;
@@ -8,6 +10,7 @@ use log::*;
 use memmap::{Mmap, MmapOptions};
 use rayon::prelude::*;
 use sm3::rainbow::{RainbowChain, RainbowIndex, RainbowTableHeader};
+use std::collections::HashMap;
 
 mod util;
 
@@ -50,7 +53,7 @@ fn read_rainbow_table(table: &mut File) -> (RainbowTableHeader, Vec<u8>) {
     (header, charset)
 }
 
-fn run_lookup(opts: &LookupOptions) {
+fn run_lookup(opts: &LookupOptions) -> HashMap<String, Vec<String>> {
     let mut initialized = false;
     let mut header: RainbowTableHeader = unsafe { std::mem::zeroed() };
     let mut charset: Vec<u8> = Vec::new();
@@ -103,6 +106,8 @@ fn run_lookup(opts: &LookupOptions) {
         "Plain text count: {:?}, space size: {}",
         plaintext_lens, plaintext_space_size
     );
+
+    let mut results: HashMap<String, Vec<String>> = HashMap::new();
 
     // run on each hash str
     for hash_str in &opts.hash {
@@ -223,7 +228,11 @@ fn run_lookup(opts: &LookupOptions) {
         } else {
             println!("Found plain text for {}: {:?}", &hash_str, &all_plain_text);
         }
+
+        results.insert(hash_str.clone(), all_plain_text);
     }
+
+    results
 }
 
 fn main() {
@@ -231,4 +240,72 @@ fn main() {
     let opts: LookupOptions = LookupOptions::parse();
     println!("Program options: {:?}", opts);
     run_lookup(&opts);
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use rand::Rng;
+    use sm3::my_sm3_impl::my_hash_impl_inplace;
+
+
+    #[test]
+    fn test_coverage() {
+        env_logger::builder().init();
+        let mut test_options = LookupOptions {
+            hash: Vec::new(),
+            table_files: Vec::new()
+        };
+
+        // find all .dat files
+        for p in std::fs::read_dir("./").expect("Cannot read working dir") {
+            let path = p.unwrap().path();
+            if path.is_file() && path.extension().is_some() && path.extension().unwrap().eq_ignore_ascii_case("dat") {
+                let filename = path.file_name().unwrap().to_str().unwrap().to_owned();
+                println!("Found table {}", &filename);
+                &test_options.table_files.push(filename);
+            }
+        }
+
+        // read parameters
+        let read_result = read_rainbow_table(&mut File::open(Path::new(&test_options.table_files[0])).unwrap());
+        let header = &read_result.0;
+        let charset = &read_result.1;
+        let plaintext_len_range = (header.min_length as usize)..(header.max_length + 1) as usize;
+        let plaintext_lens = util::generate_cumulative_lengths(&plaintext_len_range, charset.len());
+        let plaintext_space_size = plaintext_lens[plaintext_len_range.end - 1];
+
+        let mut rng = rand::thread_rng();
+        let mut hash = [0u8; 32];
+        let mut plaintext: Vec<u8> = Vec::new();
+        plaintext.resize(plaintext_len_range.end - 1, 0);
+
+        let hash_count = 1000;
+
+        // generate some hashes according to parameters
+        for _ in 0..hash_count {
+            let index = rng.gen_range(0..plaintext_space_size);
+            let len = RainbowIndex(index).to_plaintext(charset, &plaintext_len_range, &plaintext_lens, plaintext.as_mut_slice());
+            my_hash_impl_inplace(&plaintext, len as usize, &mut hash);
+            &test_options.hash.push(hex::encode(hash));
+        }
+        std::mem::drop(read_result);
+
+        info!("Generated {} SM3 hashes", hash_count);
+
+        // crack all hashes
+        let result = run_lookup(&test_options);
+        let mut cracked_count = 0;
+        for kv in &result {
+            if !&kv.1.is_empty() {
+                cracked_count += 1;
+            }
+        }
+
+        let percentage = cracked_count as f32 / hash_count as f32 * 100.00;
+        info!("Cracked count: {}/{} ({:.0})", cracked_count, hash_count, percentage);
+
+    }
 }
