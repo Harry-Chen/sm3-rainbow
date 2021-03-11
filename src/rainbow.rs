@@ -227,7 +227,7 @@ impl RainbowChain {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, Eq)]
 // header of rainbow table
 pub struct RainbowTableHeader {
     pub magic: u64,
@@ -239,9 +239,25 @@ pub struct RainbowTableHeader {
     pub charset_length: u64,
 }
 
+impl PartialEq for RainbowTableHeader {
+    fn eq(&self, other: &Self) -> bool {
+        self.magic == other.magic
+            && self.num_chain == other.num_chain
+            && self.chain_len == other.chain_len
+            && self.min_length == other.min_length
+            && self.max_length == other.max_length
+            && self.charset_length == other.charset_length
+    }
+}
+
 impl RainbowTableHeader {
     pub fn is_valid(&self) -> bool {
         self.magic == RAINBOW_TABLE_HEADER_MAGIC
+            && self.min_length > 0
+            && self.max_length > 0
+            && self.charset_length > 0
+            && self.num_chain > 0
+            && self.chain_len > 0
     }
 }
 

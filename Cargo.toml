@@ -13,6 +13,10 @@ path = "src/sm3.rs"
 name = "generate_rt"
 path = "src/generate_rt.rs"
 
+[[bin]]
+name = "lookup_rt"
+path = "src/lookup_rt.rs"
+
 [dependencies]
 byteorder = "1"
 openssl-sys = { git = "https://github.com/jiegec/rust-openssl", branch = "add-sm3" }
@@ -24,5 +28,6 @@ rayon = "1"
 indicatif = {version = "0.15", features = ["rayon"]}
 clap = "3.0.0-beta.2"
 rand = "0.8"
+memmap = "0.7"
 
 [dev-dependencies]

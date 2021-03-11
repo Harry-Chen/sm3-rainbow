@@ -1,6 +1,6 @@
 use std::fs::OpenOptions;
-use std::path::Path;
 use std::io::Write;
+use std::path::Path;
 
 use clap::Clap;
 use indicatif::{ProgressBar, ProgressStyle};
@@ -9,14 +9,13 @@ use rand::Rng;
 use rayon::prelude::*;
 use sm3::rainbow::{RainbowChain, RainbowIndex, RainbowTableHeader, RAINBOW_TABLE_HEADER_MAGIC};
 
-
 #[derive(Clap, Debug)]
 #[clap(version = "0.1", author = "Shengqi Chen <i@harrychen.xyz>")]
 pub struct GeneratorOptions {
     #[clap(
-    short = 'c',
-    long,
-    default_value = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        short = 'c',
+        long,
+        default_value = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     )]
     pub charset: String,
     #[clap(short = 'm', long, default_value = "5")]
@@ -35,9 +34,7 @@ pub struct GeneratorOptions {
     pub force_overwrite: bool,
 }
 
-
 fn main() {
-
     // init program
     env_logger::builder().init();
     let opts: GeneratorOptions = GeneratorOptions::parse();
@@ -235,91 +232,14 @@ fn main() {
         }
     }
 
-    // let mut target_hash = [0u8; 32];
-    // hex::decode_to_slice(
-    //     "af67760fb0b62ca056e207c226b9f3e5bec5ad406658b6829ca09b1282e290ca",
-    //     &mut target_hash,
-    // )
-    // .unwrap();
-    //
-    // progress.reset();
-    // progress.set_length(rainbow_chain_len as u64);
-    //
-    // // store cracked plain text
-    // let cracked: Vec<_> = (0..rainbow_chain_len)
-    //     .into_par_iter()
-    //     .map(|i| {
-    //         progress.inc(1);
-    //         // offset on chain
-    //         let chain_offset = rainbow_chain_len - 1 - i;
-    //         // first step: R_offset
-    //         let mut target_tail = RainbowIndex::from_hash(
-    //             &target_hash,
-    //             0,
-    //             *plaintext_lens.last().unwrap(),
-    //             chain_offset as u32,
-    //         );
-    //         // remaining steps: H, R_{o+1}, H, ..., R_{l-1}
-    //         if i > 0 {
-    //             target_tail = RainbowIndex::traverse_chain(
-    //                 target_tail,
-    //                 charset,
-    //                 &range,
-    //                 &plaintext_lens,
-    //                 chain_offset + 1,
-    //                 i,
-    //                 0,
-    //                 |_, _, _| false,
-    //             );
-    //         }
-    //         debug!(
-    //             "Searching for step {} with target tail {:#018x}\n",
-    //             i, target_tail.0
-    //         );
-    //
-    //         let result = match chains.binary_search(&RainbowChain {
-    //             head: RainbowIndex(0),
-    //             tail: target_tail,
-    //         }) {
-    //             Ok(match_idx) => {
-    //                 let match_chain = &chains[match_idx];
-    //                 info!(
-    //                     "Found matching chain {} on step {}: {:?}\n",
-    //                     match_idx, i, match_chain
-    //                 );
-    //                 match match_chain.find_match(
-    //                     &target_hash,
-    //                     charset,
-    //                     &range,
-    //                     plaintext_lens.as_ref(),
-    //                     rainbow_chain_len,
-    //                     0,
-    //                 ) {
-    //                     Some(result) => {
-    //                         let plain = String::from_utf8_lossy(&result).into_owned();
-    //                         info!("Found plain text: {:?}\n", plain);
-    //                         Some(plain)
-    //                     }
-    //                     None => None, // warn!("Failed to find plain text!")
-    //                 }
-    //             }
-    //             Err(_) => {
-    //                 debug!("Not found for step {}\n", i);
-    //                 None
-    //             }
-    //         };
-    //
-    //         result
-    //     })
-    //     .filter(|r| !r.is_none())
-    //     .map(|r| r.unwrap())
-    //     .collect();
-    //
-    // progress.finish_and_clear();
-    //
-    // if cracked.is_empty() {
-    //     warn!("No plain text found");
-    // } else {
-    //     info!("Plain text: {:?}", cracked);
-    // }
+    progress.reset();
+    progress.set_length(rainbow_chain_len as u64);
+
+    progress.finish_and_clear();
+
+    if cracked.is_empty() {
+        warn!("No plain text found");
+    } else {
+        info!("Plain text: {:?}", cracked);
+    }
 }
