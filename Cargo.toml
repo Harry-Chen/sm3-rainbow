@@ -22,6 +22,7 @@ log = "0.4"
 env_logger = "0.8"
 rayon = "1"
 indicatif = {version = "0.15", features = ["rayon"]}
+itertools = "0.10"
 
 [dev-dependencies]
 rand = "0.8"

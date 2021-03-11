@@ -1,3 +1,5 @@
+use std::hash::{Hash, Hasher};
+
 use byteorder::{LittleEndian, ReadBytesExt};
 use log::*;
 
@@ -5,7 +7,7 @@ use crate::my_sm3_impl::my_hash_impl_inplace;
 use crate::*;
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct RainbowIndex(pub u64);
 
 unsafe impl Send for RainbowIndex {}
@@ -145,6 +147,12 @@ impl Ord for RainbowChain {
 impl PartialOrd for RainbowChain {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         Some(self.cmp(other))
+    }
+}
+
+impl Hash for RainbowChain {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.head.hash(state)
     }
 }
 

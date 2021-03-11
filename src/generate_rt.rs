@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::*;
 use rayon::prelude::*;
@@ -28,7 +29,7 @@ fn main() {
     info!("Plain text count: {:?}", plaintext_lens);
 
     info!("Start generating rainbow chains");
-    let rainbow_count = 1000;
+    let rainbow_count = 10000;
     let rainbow_chain_len = 10000;
     let progress = ProgressBar::new(rainbow_count);
     progress.set_style(
@@ -64,6 +65,10 @@ fn main() {
     info!("Start sorting rainbow chains");
     chains.sort();
     info!("Finish sorting rainbow chains");
+
+    // make unique by removing chains with same tails
+    chains = chains.into_iter().unique().collect();
+    info!("Table size after removing duplicated tails: {}", chains.len());
 
     let mut target_hash = [0u8; 32];
     hex::decode_to_slice(
