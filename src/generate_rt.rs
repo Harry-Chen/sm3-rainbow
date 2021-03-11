@@ -9,6 +9,8 @@ use rand::Rng;
 use rayon::prelude::*;
 use sm3::rainbow::{RainbowChain, RainbowIndex, RainbowTableHeader, RAINBOW_TABLE_HEADER_MAGIC};
 
+mod util;
+
 #[derive(Clap, Debug)]
 #[clap(version = "0.1", author = "Shengqi Chen <i@harrychen.xyz>")]
 pub struct GeneratorOptions {
@@ -34,21 +36,24 @@ pub struct GeneratorOptions {
     pub force_overwrite: bool,
 }
 
-fn main() {
-    // init program
-    env_logger::builder().init();
-    let opts: GeneratorOptions = GeneratorOptions::parse();
-    println!("Program options: {:?}", opts);
 
+fn run_generate(opts: &GeneratorOptions) {
     // read options
     let charset: &[u8] = opts.charset.as_bytes();
     let plaintext_len_range = (opts.min_length as usize)..(opts.max_length + 1) as usize;
-    let mut plaintext_lens = Vec::new();
     let num_chain = opts.num_chain;
     let chain_len = opts.chain_len;
     let table_index = opts.table_index;
-    let output_file = match opts.output_file {
-        Some(file) => file,
+    let plaintext_lens = util::generate_cumulative_lengths(&plaintext_len_range, charset.len());
+    let plaintext_space_size = plaintext_lens[plaintext_len_range.end - 1];
+    info!(
+        "Plain text count: {:?}, space size: {}",
+        plaintext_lens, plaintext_space_size
+    );
+
+    // try to open file for writing
+    let output_file = match &opts.output_file {
+        Some(file) => file.to_owned(),
         None => {
             format!(
                 "sm3_m{}_M{}_l{}_c{}_i{:04}.dat",
@@ -56,7 +61,6 @@ fn main() {
             )
         }
     };
-
     println!("Using {} as output file", output_file);
     if Path::exists(Path::new(&output_file)) {
         warn!("File already exists: {}", &output_file);
@@ -72,24 +76,6 @@ fn main() {
         .open(&output_file)
         .expect("Cannot open output file");
 
-    // calculate key space (cumulative)
-    plaintext_lens.push(0);
-    for i in 0..plaintext_len_range.end {
-        let prefix_sum = *plaintext_lens.last().unwrap();
-        plaintext_lens.push(
-            prefix_sum
-                + if plaintext_len_range.start <= i + 1 {
-                    charset.len().pow((i + 1) as u32) as u64
-                } else {
-                    0
-                },
-        );
-    }
-    let plaintext_space_size = plaintext_lens[plaintext_len_range.end - 1];
-    info!(
-        "Plain text count: {:?}, space size: {}",
-        plaintext_lens, plaintext_space_size
-    );
 
     // show progress bar
     let progress = ProgressBar::new(num_chain);
@@ -231,15 +217,12 @@ fn main() {
             std::process::exit(2);
         }
     }
+}
 
-    progress.reset();
-    progress.set_length(rainbow_chain_len as u64);
 
-    progress.finish_and_clear();
-
-    if cracked.is_empty() {
-        warn!("No plain text found");
-    } else {
-        info!("Plain text: {:?}", cracked);
-    }
+fn main() {
+    env_logger::builder().init();
+    let opts: GeneratorOptions = GeneratorOptions::parse();
+    println!("Program options: {:?}", opts);
+    run_generate(&opts);
 }

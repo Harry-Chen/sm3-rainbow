@@ -9,6 +9,8 @@ use memmap::{Mmap, MmapOptions};
 use rayon::prelude::*;
 use sm3::rainbow::{RainbowChain, RainbowIndex, RainbowTableHeader};
 
+mod util;
+
 #[derive(Clap, Debug)]
 #[clap(version = "0.1", author = "Shengqi Chen <i@harrychen.xyz>")]
 pub struct LookupOptions {
@@ -48,11 +50,8 @@ fn read_rainbow_table(table: &mut File) -> (RainbowTableHeader, Vec<u8>) {
     (header, charset)
 }
 
-fn main() {
-    // init program
-    env_logger::builder().init();
-    let opts: LookupOptions = LookupOptions::parse();
-    println!("Program options: {:?}", opts);
+
+fn run_lookup(opts: &LookupOptions) {
 
     let mut initialized = false;
     let mut header: RainbowTableHeader = unsafe { std::mem::zeroed() };
@@ -96,23 +95,9 @@ fn main() {
 
     // calculate parameters
     let plaintext_len_range = (header.min_length as usize)..(header.max_length + 1) as usize;
-    let mut plaintext_lens = Vec::new();
+    let plaintext_lens = util::generate_cumulative_lengths(&plaintext_len_range, charset.len());
     let chain_len = header.chain_len as usize;
     let num_chain = header.num_chain as usize;
-
-    // calculate key space (cumulative)
-    plaintext_lens.push(0);
-    for i in 0..plaintext_len_range.end {
-        let prefix_sum = *plaintext_lens.last().unwrap();
-        plaintext_lens.push(
-            prefix_sum
-                + if plaintext_len_range.start <= i + 1 {
-                    charset.len().pow((i + 1) as u32) as u64
-                } else {
-                    0
-                },
-        );
-    }
     let plaintext_space_size = plaintext_lens[plaintext_len_range.end - 1];
     info!(
         "Plain text count: {:?}, space size: {}",
@@ -243,4 +228,12 @@ fn main() {
             println!("Found plain text for {}: {:?}", &hash_str, &all_plain_text);
         }
     }
+}
+
+
+fn main() {
+    env_logger::builder().init();
+    let opts: LookupOptions = LookupOptions::parse();
+    println!("Program options: {:?}", opts);
+    run_lookup(&opts);
 }
