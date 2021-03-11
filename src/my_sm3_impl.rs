@@ -18,7 +18,6 @@ fn p_1(x: u32) -> u32 {
 }
 
 pub(crate) fn my_hash_impl_inplace(input: &[u8], input_len: usize, output: &mut [u8]) {
-
     #[allow(non_snake_case)]
     let mut V: [u32; 8] = [
         0x7380166f, 0x4914b2b9, 0x172442d7, 0xda8a0600, 0xa96f30bc, 0x163138aa, 0xe38dee4d,
