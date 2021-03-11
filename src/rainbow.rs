@@ -225,3 +225,22 @@ impl RainbowChain {
         }
     }
 }
+
+#[repr(C)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+// a chain in the rainbow table
+pub struct RainbowTableHeader {
+    pub magic: u64,
+    pub num_chain: u64,
+    pub chain_len: u64,
+    pub table_index: u64
+}
+
+impl RainbowTableHeader {
+    pub fn is_valid(&self) -> bool {
+        self.magic == RAINBOW_TABLE_HEADER_MAGIC
+    }
+}
+
+// "HCRNBWTB" (Harry Chen RaiNBoW TaBle) in little endian
+pub const RAINBOW_TABLE_HEADER_MAGIC: u64 = 0x425457424e524348;

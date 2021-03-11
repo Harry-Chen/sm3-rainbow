@@ -3,8 +3,9 @@ use std::path::Path;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::*;
 use rayon::prelude::*;
-use sm3::rainbow::{RainbowChain, RainbowIndex};
+use sm3::rainbow::{RainbowChain, RainbowIndex, RainbowTableHeader, RAINBOW_TABLE_HEADER_MAGIC};
 use clap::Clap;
+use rand::Rng;
 
 mod args;
 use args::CommonOptions;
@@ -21,20 +22,23 @@ fn main() {
     let charset: &[u8] = table_opts.charset.as_bytes();
     let range = (table_opts.min_length as usize)..(table_opts.max_length + 1) as usize;
     let mut plaintext_lens = Vec::new();
-    let rainbow_count = table_opts.num_chain as u64;
-    let rainbow_chain_len = table_opts.chain_len as usize;
-    let table_index = table_opts.table_index as usize;
+    let num_chain = table_opts.num_chain;
+    let chain_len = table_opts.chain_len;
+    let table_index = table_opts.table_index;
     let output_file = match table_opts.output_file {
         Some(file) => file,
         None => {
-            format!("sm3_m{}_M{}_l{}_c{}_i{:04}.dat", table_opts.min_length, table_opts.max_length, rainbow_chain_len, rainbow_count, table_index)
+            format!("sm3_m{}_M{}_l{}_c{}_i{:04}.dat", table_opts.min_length, table_opts.max_length, chain_len, num_chain, table_index)
         }
     };
 
     println!("Using {} as output file", output_file);
     if Path::exists(Path::new(&output_file)) {
-        error!("File already exists");
-        std::process::exit(1);
+        warn!("File already exists: {}", &output_file);
+        if !table_opts.force_overwrite {
+            std::process::exit(1);
+        }
+        warn!("Overwriting {} due to force flag", &output_file);
     }
     let mut output = OpenOptions::new().read(true).write(true).create(true).open(&output_file).expect("Cannot open output file");
 
@@ -51,11 +55,11 @@ fn main() {
                 },
         );
     }
-
-    info!("Plain text count: {:?}", plaintext_lens);
+    let plaintext_space_size = plaintext_lens[range.end - 1];
+    info!("Plain text count: {:?}, space size: {}", plaintext_lens, plaintext_space_size);
 
     // show progress bar
-    let progress = ProgressBar::new(rainbow_count);
+    let progress = ProgressBar::new(num_chain);
     progress.set_style(
         ProgressStyle::default_bar()
             .template(
@@ -65,9 +69,11 @@ fn main() {
     );
 
     // generate chain in parallel
-    info!("Start generating rainbow chains");
+    let start_index = table_index * num_chain;
+    let end_index = start_index + num_chain;
+    info!("Start generating rainbow chains from index {} to {}", start_index, end_index);
 
-    let mut chains: Vec<_> = (0..rainbow_count)
+    let mut chains: Vec<_> = (start_index..end_index)
         .into_par_iter()
         .map(|i| {
             let head = RainbowIndex(i);
@@ -77,7 +83,7 @@ fn main() {
                 &range,
                 plaintext_lens.as_ref(),
                 0,
-                rainbow_chain_len,
+                chain_len as usize,
                 0,
             );
             trace!("Generate chain: {:?}\n", chain);
@@ -96,7 +102,56 @@ fn main() {
     info!("Finish sorting rainbow chains");
     info!("Table size after removing duplicated tails: {}", chains.len());
 
-    // write rainbow tables to file
+    // generate from random indices until reaching num_chain
+    while chains.len() < num_chain as usize {
+        let num_remain_chain = (num_chain as usize) - chains.len();
+        info!("Generating remaining {} chains from random numbers", num_remain_chain);
+        // generate random indices
+        let mut rng = rand::thread_rng();
+        let remaining_index: Vec<_> = (0..num_remain_chain).map(|_| {
+            rng.gen_range(0..plaintext_space_size)
+        }).collect();
+        // generate random chains
+        let mut random_chains: Vec<_> = (0..num_remain_chain)
+            .into_par_iter()
+            .map(|i| {
+                let head = RainbowIndex(remaining_index[i]);
+                let chain = RainbowChain::from_index(
+                    head,
+                    charset,
+                    &range,
+                    plaintext_lens.as_ref(),
+                    0,
+                    chain_len as usize,
+                    0,
+                );
+                trace!("Generate chain: {:?}\n", chain);
+                progress.inc(1);
+                chain
+            })
+            .collect();
+        chains.append(&mut random_chains);
+        chains.sort();
+        chains.dedup();
+        info!("New chain number: {}", chains.len());
+    }
+
+    // write rainbow table header to file
+    let header = RainbowTableHeader {
+        magic: RAINBOW_TABLE_HEADER_MAGIC,
+        num_chain,
+        chain_len,
+        table_index
+    };
+    let header_ptr = unsafe {
+        std::slice::from_raw_parts(
+            (&header as *const RainbowTableHeader) as *const u8,
+            std::mem::size_of::<RainbowTableHeader>()
+        )
+    };
+    let header_len = output.write(&header_ptr).expect("Failed to write rainbow file header");
+
+    // write sorted rainbow chains to file
     match output.write(unsafe {
         std::slice::from_raw_parts(
         chains.as_ptr() as *const u8,
@@ -104,7 +159,7 @@ fn main() {
     )}
     ) {
         Ok(len) => {
-            info!("Successfully writing {} bytes to {}", len, &output_file);
+            info!("Successfully writing {} bytes to {}", header_len + len, &output_file);
         },
         Err(err) => {
             error!("Error writing file: {:?}", err);

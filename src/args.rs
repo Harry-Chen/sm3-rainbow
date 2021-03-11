@@ -10,11 +10,13 @@ pub struct CommonOptions {
     #[clap(short = 'M', long, default_value = "6")]
     pub max_length: u32,
     #[clap(short = 'n', long, default_value = "10000")]
-    pub num_chain: u32,
+    pub num_chain: u64,
     #[clap(short = 'l', long, default_value = "10000")]
-    pub chain_len: u32,
+    pub chain_len: u64,
     #[clap(short = 'i', long, default_value = "0")]
-    pub table_index: u32,
+    pub table_index: u64,
     #[clap(short = 'o', long)]
-    pub output_file: Option<String>
+    pub output_file: Option<String>,
+    #[clap(short = 'f', long)]
+    pub force_overwrite: bool,
 }
