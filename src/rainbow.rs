@@ -228,12 +228,15 @@ impl RainbowChain {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
-// a chain in the rainbow table
+// header of rainbow table
 pub struct RainbowTableHeader {
     pub magic: u64,
     pub num_chain: u64,
     pub chain_len: u64,
-    pub table_index: u64
+    pub table_index: u64,
+    pub min_length: u32,
+    pub max_length: u32,
+    pub charset_length: u64,
 }
 
 impl RainbowTableHeader {

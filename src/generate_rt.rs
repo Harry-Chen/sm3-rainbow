@@ -136,12 +136,16 @@ fn main() {
         info!("New chain number: {}", chains.len());
     }
 
+
     // write rainbow table header to file
     let header = RainbowTableHeader {
         magic: RAINBOW_TABLE_HEADER_MAGIC,
         num_chain,
         chain_len,
-        table_index
+        table_index,
+        min_length: table_opts.min_length,
+        max_length: table_opts.max_length,
+        charset_length: charset.len() as u64
     };
     let header_ptr = unsafe {
         std::slice::from_raw_parts(
@@ -149,7 +153,15 @@ fn main() {
             std::mem::size_of::<RainbowTableHeader>()
         )
     };
-    let header_len = output.write(&header_ptr).expect("Failed to write rainbow file header");
+    output.write_all(&header_ptr).expect("Failed to write rainbow file header");
+    output.write_all(&charset).expect("Failed to write charset to header");
+
+    // pad to 8 bytes
+    let padding_len = if charset.len() % 8 != 0 {
+        8 - charset.len() % 8
+    } else { 0 };
+    let padding = [0u8; 8];
+    output.write_all(&padding[..padding_len]).expect("Failed to write padding to header");
 
     // write sorted rainbow chains to file
     match output.write(unsafe {
@@ -159,7 +171,8 @@ fn main() {
     )}
     ) {
         Ok(len) => {
-            info!("Successfully writing {} bytes to {}", header_len + len, &output_file);
+            let total_len = header_ptr.len() + charset.len() + padding_len + len;
+            info!("Successfully writing {} bytes to {}", total_len, &output_file);
         },
         Err(err) => {
             error!("Error writing file: {:?}", err);
