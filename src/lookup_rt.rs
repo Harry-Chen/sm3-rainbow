@@ -225,6 +225,7 @@ fn run_lookup(opts: &LookupOptions) -> HashMap<String, Vec<String>> {
 
         if all_plain_text.is_empty() {
             error!("Failed to find plain text for {}", &hash_str);
+            println!("Failed to find plain text for {}", &hash_str);
         } else {
             println!("Found plain text for {}: {:?}", &hash_str, &all_plain_text);
         }
@@ -305,7 +306,7 @@ mod tests {
         }
 
         let percentage = cracked_count as f32 / hash_count as f32 * 100.00;
-        info!("Cracked count: {}/{} ({:.0})", cracked_count, hash_count, percentage);
+        println!("Cracked count: {}/{} ({:.2}%)", cracked_count, hash_count, percentage);
 
     }
 }
