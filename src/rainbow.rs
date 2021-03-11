@@ -95,8 +95,8 @@ impl RainbowIndex {
 #[derive(Copy, Clone, Debug, Eq)]
 // a chain in the rainbow table
 pub struct RainbowChain {
-    head: RainbowIndex,
-    tail: RainbowIndex,
+    pub head: RainbowIndex,
+    pub tail: RainbowIndex,
 }
 
 impl PartialEq for RainbowChain {
