@@ -179,7 +179,7 @@ fn run_lookup(opts: &LookupOptions) -> HashMap<String, Vec<String>> {
                     }) {
                         Ok(match_idx) => {
                             let match_chain = &chains[match_idx];
-                            info!(
+                            debug!(
                                 "Found matching chain {} on step {}: {:?}\n",
                                 match_idx, i, match_chain
                             );
@@ -193,11 +193,11 @@ fn run_lookup(opts: &LookupOptions) -> HashMap<String, Vec<String>> {
                             ) {
                                 Some(result) => {
                                     let plain = String::from_utf8_lossy(&result).into_owned();
-                                    info!("Found plain text: {:?}\n", plain);
+                                    debug!("Found plain text: {:?}\n", plain);
                                     Some(plain)
                                 }
                                 None => {
-                                    info!("False alarm detected\n");
+                                    debug!("False alarm detected\n");
                                     None
                                 }
                             }
