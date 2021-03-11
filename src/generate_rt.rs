@@ -36,7 +36,6 @@ pub struct GeneratorOptions {
     pub force_overwrite: bool,
 }
 
-
 fn run_generate(opts: &GeneratorOptions) {
     // read options
     let charset: &[u8] = opts.charset.as_bytes();
@@ -75,7 +74,6 @@ fn run_generate(opts: &GeneratorOptions) {
         .create(true)
         .open(&output_file)
         .expect("Cannot open output file");
-
 
     // show progress bar
     let progress = ProgressBar::new(num_chain);
@@ -218,7 +216,6 @@ fn run_generate(opts: &GeneratorOptions) {
         }
     }
 }
-
 
 fn main() {
     env_logger::builder().init();

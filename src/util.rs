@@ -9,10 +9,10 @@ pub fn generate_cumulative_lengths(len_range: &Range<usize>, charset_len: usize)
         lens.push(
             prefix_sum
                 + if len_range.start <= i + 1 {
-                charset_len.pow((i + 1) as u32) as u64
-            } else {
-                0
-            },
+                    charset_len.pow((i + 1) as u32) as u64
+                } else {
+                    0
+                },
         );
     }
     lens

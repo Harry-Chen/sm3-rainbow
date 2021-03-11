@@ -50,9 +50,7 @@ fn read_rainbow_table(table: &mut File) -> (RainbowTableHeader, Vec<u8>) {
     (header, charset)
 }
 
-
 fn run_lookup(opts: &LookupOptions) {
-
     let mut initialized = false;
     let mut header: RainbowTableHeader = unsafe { std::mem::zeroed() };
     let mut charset: Vec<u8> = Vec::new();
@@ -81,7 +79,9 @@ fn run_lookup(opts: &LookupOptions) {
             std::process::exit(1);
         }
         // mmap file
-        mapped_tables.push((f.to_owned(), unsafe { MmapOptions::new().map(&file).expect("Failed to mmap file") }));
+        mapped_tables.push((f.to_owned(), unsafe {
+            MmapOptions::new().map(&file).expect("Failed to mmap file")
+        }));
     }
 
     // calculate offset to rainbow chain data
@@ -125,17 +125,13 @@ fn run_lookup(opts: &LookupOptions) {
 
         // iterate over each table
         for m in &mapped_tables {
-
             let filename = &m.0;
             info!("Starting searching in {}\n", &filename);
 
             // cast data to &[RainbowChain]
             let chain_data = &m.1.as_ref()[data_offset..];
             let chains = unsafe {
-                std::slice::from_raw_parts(
-                    chain_data.as_ptr() as *const RainbowChain,
-                    num_chain,
-                )
+                std::slice::from_raw_parts(chain_data.as_ptr() as *const RainbowChain, num_chain)
             };
 
             progress.reset();
@@ -198,7 +194,7 @@ fn run_lookup(opts: &LookupOptions) {
                                 None => {
                                     info!("False alarm detected\n");
                                     None
-                                },
+                                }
                             }
                         }
                         Err(_) => {
@@ -229,7 +225,6 @@ fn run_lookup(opts: &LookupOptions) {
         }
     }
 }
-
 
 fn main() {
     env_logger::builder().init();
