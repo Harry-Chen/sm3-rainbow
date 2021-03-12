@@ -70,7 +70,7 @@ fn run_generate(opts: &GeneratorOptions) {
         Some(file) => file.to_owned(),
         None => {
             format!(
-                "sm3_m{}_M{}_l{}_c{}_i{:04}.dat",
+                "sm3_m{}_M{}_l{}_n{}_i{:04}.dat",
                 opts.min_length, opts.max_length, chain_len, num_chain, table_index
             )
         }

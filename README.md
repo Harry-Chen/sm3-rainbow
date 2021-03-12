@@ -37,12 +37,17 @@ See its help for how arguments work and their default values.
 
 #### Example usage
 
+To generate two rainbow tables (each has 5000 chains and each chain has length 10000)
+for all strings in the format of `[a-zA-Z0-9]{5,6}`:
+
 ```bash
 RUST_LOG=info cargo run --release --bin generate_rt -- -l 10000 -n 5000 -m 5 -M 6 -i 0 # table 0
 RUST_LOG=info cargo run --release --bin generate_rt -- -l 10000 -n 5000 -m 5 -M 6 -i 1 # table 1
 ```
 
 The output file name can be specified by `-o output_file` or automatically synthesized by the parameters above.
+The above commands lead to two files: `sm3_m5_M6_l10000_n5000_i000[0-1].dat`
+
 You should generate at lease `key_sapce_size / (chain_len * chain_num)` tables for practical cracking.
 
 Specify `-r` to use random numbers as starting points of rainbow chains instead of sequentially traversing the plain text space.
@@ -82,6 +87,7 @@ Run `cargo test --release --bin lookup_rt -- --nocapture` to test the coverage o
 The test will generate 10000 random string according to the parameters of the tables, hash them and try to crack the hashes.
 It will report success rate after finishing all tests.
 
+The `test_coverage.sh` contains a script that test the coverage of `1, 2, 4, 6, 8, 10, 12, 14, 16` table incrementally.
 
 ## File format
 
@@ -94,7 +100,7 @@ struct alignas(8) RainbowTableHeader {
     uint64_t num_chain, chain_len, table_index;
     uint32_t min_length, max_length;
     uint64_t charset_length;
-    uint8_t charset[charset_length];
+    uint8_t charset[charset_length]; // note: not NUL-terminated
     // zero padding to align to 8 bytes
 };
 ```
