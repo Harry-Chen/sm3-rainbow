@@ -8,7 +8,7 @@ readme = "README.md"
 license = "MIT"
 repository = "https://github.com/Harry-Chen/sm3-rainbow/"
 publish = false
-default_run = "sm3_hash"
+default-run = "sm3_hash"
 
 [lib]
 name = "sm3"
