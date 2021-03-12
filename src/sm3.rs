@@ -48,7 +48,7 @@ impl fmt::Debug for Bytes {
 pub type Hash = fn(input: &[u8]) -> Bytes;
 
 pub mod my_sm3_impl;
-pub(crate) mod openssl_sm3_impl;
+pub mod openssl_sm3_impl;
 pub mod rainbow;
 
 pub const OPENSSL_SM3: Hash = openssl_sm3_impl::HASH;

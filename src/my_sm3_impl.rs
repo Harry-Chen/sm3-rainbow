@@ -141,7 +141,7 @@ pub fn my_hash_impl_inplace(input: &[u8], input_len: usize, output: &mut [u8]) {
     }
 }
 
-pub(crate) fn my_hash_impl(input: &[u8]) -> Bytes {
+pub fn my_hash_impl(input: &[u8]) -> Bytes {
     let mut output: [u8; 32] = [0; 32];
     my_hash_impl_inplace(&input, input.len(), &mut output);
     Bytes {

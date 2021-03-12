@@ -121,7 +121,7 @@ fn run_lookup(opts: &LookupOptions) -> HashMap<String, Vec<String>> {
         info!("Trying to crack {}\n", &hash_str);
 
         // show progress bar
-        let progress = ProgressBar::new(num_chain as u64);
+        let progress = ProgressBar::new(chain_len as u64);
         progress.set_style(
             ProgressStyle::default_bar()
                 .template(

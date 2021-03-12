@@ -10,6 +10,10 @@ name = "sm3"
 path = "src/sm3.rs"
 
 [[bin]]
+name = "sm3_hash"
+path = "src/sm3_hash.rs"
+
+[[bin]]
 name = "generate_rt"
 path = "src/generate_rt.rs"
 
