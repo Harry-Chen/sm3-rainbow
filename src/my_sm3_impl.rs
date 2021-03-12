@@ -33,7 +33,7 @@ pub fn my_hash_impl_inplace(input: &[u8], input_len: usize, output: &mut [u8]) {
     let mut preprocessed: Vec<u8> = Vec::with_capacity(real_length);
     preprocessed.extend_from_slice(input);
     preprocessed.resize(real_length, 0);
-    preprocessed[input.len()] = 0x80;
+    preprocessed[input_len] = 0x80;
     // write length in big endian
     (&mut preprocessed[real_length - 8..real_length])
         .write_u64::<BigEndian>(length * 8)

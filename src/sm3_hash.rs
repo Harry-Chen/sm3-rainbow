@@ -22,8 +22,7 @@ fn main() {
         loop {
             let bytes = std::io::stdin().read_line(&mut buffer).expect("Failed to read stdin");
             if bytes == 0 {
-                buffer.trim();
-                let hash = my_hash_impl(buffer.as_bytes());
+                let hash = my_hash_impl(buffer.trim().as_bytes());
                 let hash_hex = hex::encode(hash.as_ref());
                 println!("{}", &hash_hex);
                 break;
