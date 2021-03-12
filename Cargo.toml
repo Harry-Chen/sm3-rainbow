@@ -1,9 +1,14 @@
 [package]
 name = "sm3-rainbow"
 version = "0.1.0"
-authors = ["Harry Chen <i@harrychen.xyz>"]
+authors = ["Shengqi Chen <i@harrychen.xyz>"]
 edition = "2018"
+description = "Implementation of rainbow table for SM3 hashing algorithm"
+readme = "README.md"
+license = "MIT"
+repository = "https://github.com/Harry-Chen/sm3-rainbow/"
 publish = false
+default_run = "sm3_hash"
 
 [lib]
 name = "sm3"

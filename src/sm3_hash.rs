@@ -12,7 +12,7 @@ pub struct HashOptions {
     plain_text: Vec<String>,
     #[clap(short = 'i', long, default_value = "my")]
     /// SM3 implementation to use ("my" / "openssl")
-    pub implementation: String
+    pub implementation: String,
 }
 
 fn main() {
@@ -26,14 +26,16 @@ fn main() {
             panic!("Unknown implementation: {}", &opts.implementation);
         }
     };
-    
+
     eprintln!("Using implementation: {}", &opts.implementation);
 
     if opts.plain_text.is_empty() {
         eprintln!("Input your text to hash:");
         let mut buffer = String::new();
         loop {
-            let bytes = std::io::stdin().read_line(&mut buffer).expect("Failed to read stdin");
+            let bytes = std::io::stdin()
+                .read_line(&mut buffer)
+                .expect("Failed to read stdin");
             if bytes == 0 {
                 let hash = hasher(buffer.trim().as_bytes());
                 let hash_hex = hex::encode(hash.as_ref());
