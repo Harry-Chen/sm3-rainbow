@@ -12,7 +12,12 @@ use sm3::rainbow::{RainbowChain, RainbowIndex, RainbowTableHeader, RAINBOW_TABLE
 mod util;
 
 #[derive(Clap, Debug)]
-#[clap(version = "0.1", author = "Shengqi Chen <i@harrychen.xyz>")]
+#[clap(
+    name = "generate_rt",
+    version = "0.1",
+    author = "Shengqi Chen <i@harrychen.xyz>",
+    about = "Generate rainbow tables of SM3 hash algorithm"
+)]
 pub struct GeneratorOptions {
     #[clap(
         short = 'c',
@@ -21,18 +26,28 @@ pub struct GeneratorOptions {
     )]
     pub charset: String,
     #[clap(short = 'm', long, default_value = "5")]
+    /// Minimal length of plain text
     pub min_length: u32,
     #[clap(short = 'M', long, default_value = "6")]
+    /// Maximal length of plain text
     pub max_length: u32,
     #[clap(short = 'n', long, default_value = "10000")]
+    /// Number of chains in each table
     pub num_chain: u64,
     #[clap(short = 'l', long, default_value = "10000")]
+    /// Length (times of hash) of each chain
     pub chain_len: u64,
     #[clap(short = 'i', long, default_value = "0")]
+    /// Index of table to generate
     pub table_index: u64,
+    #[clap(short = 'r', long)]
+    /// Use random plain text as head instead of sequential traversal
+    pub random_head: bool,
     #[clap(short = 'o', long)]
+    /// Output table name (synthesized if not specified)
     pub output_file: Option<String>,
     #[clap(short = 'f', long)]
+    /// Forcibly overwrite existing output file
     pub force_overwrite: bool,
 }
 
@@ -86,14 +101,24 @@ fn run_generate(opts: &GeneratorOptions) {
     );
 
     // generate chain in parallel
-    let start_index = table_index * num_chain;
-    let end_index = start_index + num_chain;
-    info!(
-        "Start generating rainbow chains from index {} to {}",
-        start_index, end_index
-    );
+    let mut rng = rand::thread_rng();
 
-    let mut chains: Vec<_> = (start_index..end_index)
+    let initial_indices: Vec<_> = if opts.random_head {
+        info!("Start generating rainbow chains using random numbers");
+        (0..num_chain)
+            .map(|_| rng.gen_range(0..plaintext_space_size))
+            .collect()
+    } else {
+        let start_index = table_index * num_chain;
+        let end_index = start_index + num_chain;
+        info!(
+            "Start generating rainbow chains from index {} to {}",
+            start_index, end_index
+        );
+        (start_index..end_index).collect()
+    };
+
+    let mut chains: Vec<_> = initial_indices
         .into_par_iter()
         .map(|i| {
             let head = RainbowIndex(i);
@@ -133,15 +158,14 @@ fn run_generate(opts: &GeneratorOptions) {
             num_remain_chain
         );
         // generate random indices
-        let mut rng = rand::thread_rng();
-        let remaining_index: Vec<_> = (0..num_remain_chain)
+        let remaining_indices: Vec<_> = (0..num_remain_chain)
             .map(|_| rng.gen_range(0..plaintext_space_size))
             .collect();
         // generate random chains
         let mut random_chains: Vec<_> = (0..num_remain_chain)
             .into_par_iter()
             .map(|i| {
-                let head = RainbowIndex(remaining_index[i]);
+                let head = RainbowIndex(remaining_indices[i]);
                 let chain = RainbowChain::from_index(
                     head,
                     charset,

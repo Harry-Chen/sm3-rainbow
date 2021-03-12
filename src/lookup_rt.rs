@@ -15,7 +15,12 @@ use std::collections::HashMap;
 mod util;
 
 #[derive(Clap, Debug)]
-#[clap(version = "0.1", author = "Shengqi Chen <i@harrychen.xyz>")]
+#[clap(
+    name = "lookup_rt",
+    version = "0.1",
+    author = "Shengqi Chen <i@harrychen.xyz>",
+    about = "Lookup hashes in rainbow tables of SM3 hash algorithm"
+)]
 pub struct LookupOptions {
     #[clap(short = 'h', long, required = true)]
     pub hash: Vec<String>,
@@ -243,7 +248,6 @@ fn main() {
     run_lookup(&opts);
 }
 
-
 #[cfg(test)]
 mod tests {
 
@@ -251,19 +255,21 @@ mod tests {
     use rand::Rng;
     use sm3::my_sm3_impl::my_hash_impl_inplace;
 
-
     #[test]
     fn test_coverage() {
         env_logger::builder().init();
         let mut test_options = LookupOptions {
             hash: Vec::new(),
-            table_files: Vec::new()
+            table_files: Vec::new(),
         };
 
         // find all .dat files
         for p in std::fs::read_dir("./").expect("Cannot read working dir") {
             let path = p.unwrap().path();
-            if path.is_file() && path.extension().is_some() && path.extension().unwrap().eq_ignore_ascii_case("dat") {
+            if path.is_file()
+                && path.extension().is_some()
+                && path.extension().unwrap().eq_ignore_ascii_case("dat")
+            {
                 let filename = path.file_name().unwrap().to_str().unwrap().to_owned();
                 println!("Found table {}", &filename);
                 &test_options.table_files.push(filename);
@@ -271,7 +277,8 @@ mod tests {
         }
 
         // read parameters
-        let read_result = read_rainbow_table(&mut File::open(Path::new(&test_options.table_files[0])).unwrap());
+        let read_result =
+            read_rainbow_table(&mut File::open(Path::new(&test_options.table_files[0])).unwrap());
         let header = &read_result.0;
         let charset = &read_result.1;
         let plaintext_len_range = (header.min_length as usize)..(header.max_length + 1) as usize;
@@ -288,7 +295,12 @@ mod tests {
         // generate some hashes according to parameters
         for _ in 0..hash_count {
             let index = rng.gen_range(0..plaintext_space_size);
-            let len = RainbowIndex(index).to_plaintext(charset, &plaintext_len_range, &plaintext_lens, plaintext.as_mut_slice());
+            let len = RainbowIndex(index).to_plaintext(
+                charset,
+                &plaintext_len_range,
+                &plaintext_lens,
+                plaintext.as_mut_slice(),
+            );
             my_hash_impl_inplace(&plaintext, len as usize, &mut hash);
             &test_options.hash.push(hex::encode(hash));
         }
@@ -306,7 +318,9 @@ mod tests {
         }
 
         let percentage = cracked_count as f32 / hash_count as f32 * 100.00;
-        println!("Cracked count: {}/{} ({:.2}%)", cracked_count, hash_count, percentage);
-
+        println!(
+            "Cracked count: {}/{} ({:.2}%)",
+            cracked_count, hash_count, percentage
+        );
     }
 }
