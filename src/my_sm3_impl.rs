@@ -83,10 +83,8 @@ pub fn my_hash_impl_inplace(input: &[u8], input_len: usize, output: &mut [u8]) {
             // 4.2.  Constants T_j
             let tj: u32 = if i <= 15 { 0x79cc4519 } else { 0x7a879d8a };
             let mut ss1: u32 = ((a << 12) | (a >> 20))
-                .overflowing_add(e)
-                .0
-                .overflowing_add((tj << (i % 32)) | (tj.overflowing_shr(32 - i % 32).0))
-                .0;
+                .wrapping_add(e)
+                .wrapping_add((tj << (i % 32)) | (tj.wrapping_shr(32 - i % 32)));
             ss1 = (ss1 << 7) | (ss1 >> 25);
             let ss2 = ss1 ^ ((a << 12) | (a >> 20));
             // 4.3. Boolean Functions FF_j and GG_j
@@ -95,23 +93,17 @@ pub fn my_hash_impl_inplace(input: &[u8], input_len: usize, output: &mut [u8]) {
             } else {
                 (a & b) | (a & c) | (b & c)
             }
-            .overflowing_add(d)
-            .0
-            .overflowing_add(ss2)
-            .0
-            .overflowing_add(w1[i as usize])
-            .0;
+            .wrapping_add(d)
+            .wrapping_add(ss2)
+            .wrapping_add(w1[i as usize]);
             let tt2 = if i <= 15 {
                 e ^ f ^ g
             } else {
                 (e & f) | ((!e) & g)
             }
-            .overflowing_add(h)
-            .0
-            .overflowing_add(ss1)
-            .0
-            .overflowing_add(w[i as usize])
-            .0;
+            .wrapping_add(h)
+            .wrapping_add(ss1)
+            .wrapping_add(w[i as usize]);
 
             d = c;
             c = (b << 9) | (b >> 23);
