@@ -1,5 +1,7 @@
 # Rainbow table for SM3
 
+[![Actions Status](https://github.com/Harry-Chen/sm3-rainbow/workflows/Build%20and%20Test/badge.svg)](https://github.com/Harry-Chen/sm3-rainbow/actions)
+
 [SM3 hashing algorithm](https://en.wikipedia.org/wiki/SM3_(hash_function))
 and rainbow table generation & lookup implemented in Rust.
 It utilizes [`rayon`](https://github.com/rayon-rs/rayon) for data-parallel acceleration.

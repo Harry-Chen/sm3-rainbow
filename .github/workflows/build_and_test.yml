@@ -1,0 +1,17 @@
+name: Build and Test
+
+on: [push, pull_request]
+
+jobs:
+  build_and_test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: sudo apt install -y openssl
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+      - run: cargo build --release
+      - run: cargo test --tests sm3_tests
+      - run: cargo bench
